@@ -26,14 +26,13 @@ os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 import sys
 import io
 import json
-import multiprocessing as _mp
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from pathlib import Path
 from datetime import datetime
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -310,8 +309,7 @@ def main():
     eval_ckpts   = []
 
     # ── Training loop ────────────────────────────────────────────────────────
-    with ProcessPoolExecutor(max_workers=N_PARALLEL_ENVS,
-                             mp_context=_mp.get_context("spawn")) as pool:
+    with ThreadPoolExecutor(max_workers=N_PARALLEL_ENVS) as pool:
         for iteration in range(N_ITERATIONS):
 
             # Serialise current actor weights (tiny bytes, fast to pickle)
