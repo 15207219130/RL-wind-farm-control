@@ -32,7 +32,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from pathlib import Path
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
+
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -309,26 +309,18 @@ def main():
     eval_ckpts   = []
 
     # ── Training loop ────────────────────────────────────────────────────────
-    with ThreadPoolExecutor(max_workers=N_PARALLEL_ENVS) as pool:
-        for iteration in range(N_ITERATIONS):
+    for iteration in range(N_ITERATIONS):
 
-            # Serialise current actor weights (tiny bytes, fast to pickle)
             actor_bytes = agent.serialize_actor()
 
-            # Build worker arg list: different seed per worker per iteration
-            worker_args = [
-                (
-                    iteration * N_PARALLEL_ENVS + w,  # unique seed
-                    ENV_KWARGS,
-                    GRAPH_KWARGS,
-                    actor_bytes,
-                    ACTOR_CFG,
-                )
-                for w in range(N_PARALLEL_ENVS)
-            ]
-
-            # Launch N parallel episodes and wait for all to finish
-            trajs = list(pool.map(rollout_worker, worker_args))
+            # Collect N episodes sequentially (FLORIS is not thread-safe)
+            trajs = []
+            for w in range(N_PARALLEL_ENVS):
+                args = (iteration * N_PARALLEL_ENVS + w, ENV_KWARGS,
+                        GRAPH_KWARGS, actor_bytes, ACTOR_CFG)
+                trajs.append(rollout_worker(args))
+                print(f"  Iter {iteration:4d}  rollout {w+1}/{N_PARALLEL_ENVS}"
+                      f"  power={trajs[-1]['mean_power']:.2f}MW", flush=True)
 
             # PPO update using all collected trajectories
             losses = agent.update_from_trajs(trajs)
