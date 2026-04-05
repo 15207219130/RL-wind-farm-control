@@ -15,9 +15,18 @@ Outputs → results/gnn_mappo/
   training_log.json, evaluation_results.json, training_curves.png
 """
 
+import os
+# Prevent OpenBLAS/MKL from spawning extra threads inside each worker.
+# Must be set BEFORE numpy is imported anywhere in the process.
+os.environ.setdefault("OMP_NUM_THREADS",     "1")
+os.environ.setdefault("MKL_NUM_THREADS",     "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS","1")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
+
 import sys
 import io
 import json
+import multiprocessing as _mp
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
@@ -50,6 +59,10 @@ def rollout_worker(args):
       last_X (N,d), last_A (N,N), last_E (N,N,d), last_done bool,
       mean_power float  (for logging)
     """
+    import os
+    os.environ.setdefault("OMP_NUM_THREADS",     "1")
+    os.environ.setdefault("MKL_NUM_THREADS",     "1")
+    os.environ.setdefault("OPENBLAS_NUM_THREADS","1")
     import torch
     seed, env_kwargs, graph_kwargs, actor_bytes, actor_cfg = args
 
@@ -297,7 +310,8 @@ def main():
     eval_ckpts   = []
 
     # ── Training loop ────────────────────────────────────────────────────────
-    with ProcessPoolExecutor(max_workers=N_PARALLEL_ENVS) as pool:
+    with ProcessPoolExecutor(max_workers=N_PARALLEL_ENVS,
+                             mp_context=_mp.get_context("spawn")) as pool:
         for iteration in range(N_ITERATIONS):
 
             # Serialise current actor weights (tiny bytes, fast to pickle)
