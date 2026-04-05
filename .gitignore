@@ -1,0 +1,32 @@
+# Claude Code workspace settings
+.claude/
+
+# Training results and model checkpoints
+results/
+*.pt
+*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+d:/tmp/
+*.log
