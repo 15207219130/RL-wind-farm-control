@@ -65,10 +65,8 @@ def rollout_worker(args):
     import torch
     seed, env_kwargs, graph_kwargs, actor_bytes, actor_cfg = args
 
-    print(f"  [worker seed={seed}] building env ...", flush=True)
     env = WakeAwareMAEnv(**env_kwargs)
     gb  = WakeFarmGraph(**graph_kwargs)
-    print(f"  [worker seed={seed}] env ready, loading actor ...", flush=True)
 
     actor = GNNActorNetwork(
         act_dim   = actor_cfg["act_dim"],
@@ -78,7 +76,6 @@ def rollout_worker(args):
     actor.load_state_dict(torch.load(io.BytesIO(actor_bytes), map_location="cpu",
                                      weights_only=True))
     actor.eval()
-    print(f"  [worker seed={seed}] starting episode ...", flush=True)
 
     # ── Run episode ──────────────────────────────────────────────────────────
     env.reset(seed=seed)
@@ -87,9 +84,7 @@ def rollout_worker(args):
                              "actions", "log_probs", "rewards", "dones")}
     powers = []
 
-    for step in range(env_kwargs["episode_length"]):
-        if step % 50 == 0:
-            print(f"  [worker seed={seed}] step {step}/{env_kwargs['episode_length']}", flush=True)
+    for _ in range(env_kwargs["episode_length"]):
         X, A, E = gb.build(env.wind_speed, env.wind_direction,
                            env.yaw_angles, env.turbine_powers)
 
